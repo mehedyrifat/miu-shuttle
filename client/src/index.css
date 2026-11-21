@@ -1,0 +1,55 @@
+@import "tailwindcss";
+/* tailwindcss imports */
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+
+
+body {
+  background-color: #fcf8f0; 
+}
+
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
+/* Dark Mode */
+.dark body {
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+/* Background colors */
+.dark .bg-white {
+  background-color: #1f2937 !important;
+}
+
+.dark .bg-gray-100 {
+  background-color: #374151 !important;
+}
+
+.dark .bg-gray-200 {
+  background-color: #374151 !important;
+}
+
+/* Text colors */
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #f9fafb !important;
+}
+
+.dark .text-gray-700,
+.dark .text-gray-600,
+.dark .text-gray-500 {
+  color: #d1d5db !important;
+}
+
+/* Borders */
+.dark .border,
+.dark .border-b {
+  border-color: #374151 !important;
+}

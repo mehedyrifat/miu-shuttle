@@ -1,0 +1,29 @@
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Build files
+dist/
+**/dist/
+
+# Firebase Admin credentials
+firebase-service-account.json
+**/firebase-service-account.json
+
+# Logs and system files
+*.log
+.DS_Store
+
+build/
+**/build/
+.vercel/
+**/.vercel/
