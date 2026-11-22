@@ -157,10 +157,8 @@ const uploadUniversityIdCard = async (req, res) => {
       });
     }
 
-    // Keep previous rejected image ID
     const previousPublicId = user.verification.idCardPublicId;
 
-    // Upload new ID Card privately to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
@@ -183,7 +181,6 @@ const uploadUniversityIdCard = async (req, res) => {
 
     uploadedPublicId = uploadResult.public_id;
 
-    // Update verification information
     user.verification.status = "Pending";
     user.verification.idCardPublicId = uploadedPublicId;
     user.verification.rejectionReason = "";
@@ -191,7 +188,6 @@ const uploadUniversityIdCard = async (req, res) => {
 
     await user.save();
 
-    // Delete previous rejected image after successful save
     if (previousPublicId && previousPublicId !== uploadedPublicId) {
       try {
         await cloudinary.uploader.destroy(previousPublicId, {
@@ -213,7 +209,6 @@ const uploadUniversityIdCard = async (req, res) => {
       verificationStatus: user.verification.status,
     });
   } catch (err) {
-    // Delete newly uploaded image if database save fails
     if (uploadedPublicId) {
       try {
         await cloudinary.uploader.destroy(uploadedPublicId, {
@@ -238,10 +233,107 @@ const uploadUniversityIdCard = async (req, res) => {
   }
 };
 
+// 6. Upload User Profile Picture
+const uploadUserProfileImage = async (req, res) => {
+  let uploadedPublicId = "";
+
+  try {
+    const user = await User.findOne({ uid: req.user.uid });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User profile not found",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        message: "Please select a profile picture.",
+      });
+    }
+
+    const previousPublicId = user.profileImagePublicId;
+
+    // Upload profile picture as a public Cloudinary image
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: "miu-shuttle/profile-images",
+          resource_type: "image",
+          type: "upload",
+          allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        },
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+
+          resolve(result);
+        }
+      );
+
+      Readable.from(req.file.buffer).pipe(uploadStream);
+    });
+
+    uploadedPublicId = uploadResult.public_id;
+
+    // Save new profile picture information
+    user.profileImage = uploadResult.secure_url;
+    user.profileImagePublicId = uploadedPublicId;
+
+    await user.save();
+
+    // Delete previous profile picture after successful save
+    if (previousPublicId && previousPublicId !== uploadedPublicId) {
+      try {
+        await cloudinary.uploader.destroy(previousPublicId, {
+          resource_type: "image",
+          type: "upload",
+          invalidate: true,
+        });
+      } catch (cleanupError) {
+        console.error(
+          "Previous profile picture cleanup error:",
+          cleanupError.message
+        );
+      }
+    }
+
+    res.status(200).json({
+      message: "Profile picture uploaded successfully.",
+      profileImage: user.profileImage,
+    });
+  } catch (err) {
+    // Clean up new image if database save fails
+    if (uploadedPublicId) {
+      try {
+        await cloudinary.uploader.destroy(uploadedPublicId, {
+          resource_type: "image",
+          type: "upload",
+          invalidate: true,
+        });
+      } catch (cleanupError) {
+        console.error(
+          "Profile picture cleanup error:",
+          cleanupError.message
+        );
+      }
+    }
+
+    console.error("Profile picture upload error:", err);
+
+    res.status(500).json({
+      message: "Failed to upload profile picture.",
+      error: err.message,
+    });
+  }
+};
+
 module.exports = {
   registerUserDetails,
   getUserProfile,
   updateUserProfile,
   registerFcmToken,
   uploadUniversityIdCard,
+  uploadUserProfileImage,
 };

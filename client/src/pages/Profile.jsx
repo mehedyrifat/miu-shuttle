@@ -10,9 +10,10 @@ import {
   ChevronRight,
   Loader2,
   ChevronLeft,
+  Camera,
 } from "lucide-react";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../constext/AuthContext";
 import instance from "../utils/axiosConfig";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +24,7 @@ const ProfileItem = ({ icon, label, value }) => (
     <div className="text-theme-green">{icon}</div>
     <div>
       <div className="text-sm text-gray-500">{label}</div>
-      <div className="text-base text-gray-900">{value}</div>
+      <div className="text-base text-gray-900">{value || "N/A"}</div>
     </div>
   </div>
 );
@@ -50,6 +51,14 @@ export default function Profile() {
   const [profile, setProfile] = useState(null);
   const [totalRides, setTotalRides] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Profile Image States
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewImage, setPreviewImage] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imageError, setImageError] = useState("");
+
+  const fileInputRef = useRef(null);
 
   // Dark Mode State
   const [darkMode, setDarkMode] = useState(
@@ -91,6 +100,101 @@ export default function Profile() {
 
     fetchAllData();
   }, [user, authLoading]);
+
+  // Select Profile Picture
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setImageError("");
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setImageError("Only JPG, PNG and WEBP images are allowed.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image size must not exceed 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setSelectedFile(file);
+    setPreviewImage(URL.createObjectURL(file));
+  };
+
+  // Upload Profile Picture
+  const handleImageUpload = async () => {
+    if (!selectedFile) return;
+
+    try {
+      setUploadingImage(true);
+      setImageError("");
+
+      const formData = new FormData();
+      formData.append("profileImage", selectedFile);
+
+      const response = await instance.post(
+        "/secure/upload-profile-image",
+        formData
+      );
+
+      setProfile((prev) => ({
+        ...prev,
+        profileImage: response.data.profileImage,
+      }));
+
+      setSelectedFile(null);
+
+      setPreviewImage((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return "";
+      });
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      alert("Profile picture updated successfully!");
+    } catch (err) {
+      console.error("Profile picture upload error:", err);
+
+      setImageError(
+        err.response?.data?.message ||
+          "Failed to upload profile picture. Please try again."
+      );
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Cancel Selected Image
+  const handleCancelImage = () => {
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+    }
+
+    setPreviewImage("");
+    setSelectedFile(null);
+    setImageError("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Clean Preview URL
+  useEffect(() => {
+    return () => {
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
 
   // Get Role Specific ID
   const getRoleSpecificId = () => {
@@ -162,14 +266,81 @@ export default function Profile() {
       </div>
 
       {/* Profile Image */}
-      <div className="flex justify-center">
-        <div className="flex items-center justify-center w-24 h-24 overflow-hidden bg-gray-300 rounded-full">
-          <UserRound size={80} className="text-gray-500" />
+      <div className="flex flex-col items-center justify-center">
+        <div className="relative w-28 h-28">
+          <div className="flex items-center justify-center w-28 h-28 overflow-hidden bg-gray-300 border-4 border-white rounded-full shadow-lg">
+            {previewImage || profile.profileImage ? (
+              <img
+                src={previewImage || profile.profileImage}
+                alt="Profile"
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <UserRound size={80} className="text-gray-500" />
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingImage}
+            className="absolute bottom-0 right-0 p-2 text-white bg-green-700 border-2 border-white rounded-full shadow disabled:opacity-50"
+            title="Change Profile Picture"
+          >
+            <Camera size={18} />
+          </button>
         </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleImageSelect}
+        />
+
+        <p className="mt-2 text-sm text-white">
+          {profile.profileImage ? "Change Profile Picture" : "Add Profile Picture"}
+        </p>
+
+        {imageError && (
+          <p className="px-3 py-2 mt-2 text-sm text-red-700 bg-white rounded-lg">
+            {imageError}
+          </p>
+        )}
+
+        {selectedFile && (
+          <div className="flex gap-3 mt-3">
+            <button
+              type="button"
+              onClick={handleImageUpload}
+              disabled={uploadingImage}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-green-700 rounded-lg disabled:opacity-60"
+            >
+              {uploadingImage ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                "Upload Picture"
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCancelImage}
+              disabled={uploadingImage}
+              className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white rounded-lg disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Profile Information */}
-      <div className="bg-white rounded-lg shadow-lg m-6 mt-[-40px] pt-12">
+      <div className="bg-white rounded-lg shadow-lg m-6 mt-[-20px] pt-8">
         <ProfileItem
           icon={<UserRound size={24} />}
           label="Name"

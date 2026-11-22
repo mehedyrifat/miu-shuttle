@@ -3,11 +3,21 @@ const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    uid: { type: String, required: true, unique: true }, // Firebase UID
+    uid: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     fullName: { type: String, required: true },
     mobile: { type: String, required: true },
     gender: { type: String },
+
+    // Profile Picture
+    profileImage: {
+      type: String,
+      default: "",
+    },
+    profileImagePublicId: {
+      type: String,
+      default: "",
+    },
 
     // User Role
     role: {
