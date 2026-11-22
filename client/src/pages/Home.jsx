@@ -16,6 +16,19 @@ import toast from "react-hot-toast";
 import { socket } from "../utils/socket";
 import logo from "../assets/icons and logo/logo.png";
 
+// Fixed Route List - Shared by Booking and Extra Bus Request
+const ROUTE_LIST = [
+  "Mohammadpur",
+  "Mirpur-1",
+  "Mirpur-10",
+  "Rampura Bridge",
+  "BNS Center",
+  "Uttara",
+  "Vogra Bypass Gazipur",
+  "Chandra",
+  "Hemayetpur Savar",
+];
+
 export default function Home() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -26,7 +39,9 @@ export default function Home() {
   const [tripType, setTripType] = useState("Arrive");
   const [searchDate, setSearchDate] = useState(new Date());
 
-  const [allRoutes, setAllRoutes] = useState([]);
+  // Use the same fixed routes everywhere
+  const [allRoutes] = useState(ROUTE_LIST);
+
   const [showFromSuggestions, setShowFromSuggestions] = useState(false);
   const [showToSuggestions, setShowToSuggestions] = useState(false);
 
@@ -41,25 +56,6 @@ export default function Home() {
   const [requestTime, setRequestTime] = useState("");
   const [requestMessage, setRequestMessage] = useState("");
   const [submittingRequest, setSubmittingRequest] = useState(false);
-
-  // Fetch all available routes
-  useEffect(() => {
-    const fetchAllRoutes = async () => {
-      try {
-        const res = await instance.get("/buses/routes");
-
-        setAllRoutes(
-          res.data.filter(
-            (route) => route && route.toLowerCase() !== "campus"
-          )
-        );
-      } catch (err) {
-        console.error("Failed to fetch routes", err);
-      }
-    };
-
-    fetchAllRoutes();
-  }, []);
 
   // Fetch latest notice
   useEffect(() => {
@@ -303,21 +299,15 @@ export default function Home() {
 
             {showFromSuggestions && tripType === "Arrive" && (
               <div className="absolute z-20 w-full overflow-y-auto bg-white rounded-b-lg shadow-lg max-h-48">
-                {allRoutes.length > 0 ? (
-                  allRoutes.map((route) => (
-                    <div
-                      key={route}
-                      onClick={() => handleFromSelect(route)}
-                      className="p-3 text-gray-800 cursor-pointer hover:bg-gray-100"
-                    >
-                      {route}
-                    </div>
-                  ))
-                ) : (
-                  <p className="p-3 text-gray-500">
-                    No routes available yet.
-                  </p>
-                )}
+                {allRoutes.map((route) => (
+                  <div
+                    key={route}
+                    onClick={() => handleFromSelect(route)}
+                    className="p-3 text-gray-800 cursor-pointer hover:bg-gray-100"
+                  >
+                    {route}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -353,21 +343,15 @@ export default function Home() {
 
             {showToSuggestions && tripType === "Leave" && (
               <div className="absolute z-20 w-full overflow-y-auto bg-white rounded-b-lg shadow-lg max-h-48">
-                {allRoutes.length > 0 ? (
-                  allRoutes.map((route) => (
-                    <div
-                      key={route}
-                      onClick={() => handleToSelect(route)}
-                      className="p-3 text-gray-800 cursor-pointer hover:bg-gray-100"
-                    >
-                      {route}
-                    </div>
-                  ))
-                ) : (
-                  <p className="p-3 text-gray-500">
-                    No routes available yet.
-                  </p>
-                )}
+                {allRoutes.map((route) => (
+                  <div
+                    key={route}
+                    onClick={() => handleToSelect(route)}
+                    className="p-3 text-gray-800 cursor-pointer hover:bg-gray-100"
+                  >
+                    {route}
+                  </div>
+                ))}
               </div>
             )}
           </div>
